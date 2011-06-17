@@ -4,12 +4,13 @@
 #include "usbdrv.h"
 
 #define NM 2
+#define NS 4
 
 volatile uint8_t * mport[NM];
 volatile uint8_t * mddr[NM];
-volatile uint8_t * spin[2*NM];
-volatile uint8_t * sport[2*NM];
-volatile uint8_t sbit[2*NM];
+volatile uint8_t * spin[NS];
+volatile uint8_t * sport[NS];
+volatile uint8_t sbit[NS];
 volatile uint8_t mbits[NM]; // = {0, 4};
 
 // 256 - 12e3/64
@@ -42,9 +43,10 @@ void set_mport(uint8_t i, uint8_t val){
 usbMsgLen_t usbFunctionSetup(uchar data[8]) { // handle usb requests
   usbRequest_t *rq = (void *)data;
   unsigned int i;
+  uint8_t sns=0;
 
   i = (rq->wValue.bytes[1] & 0xe)>>1;
-  if (i >= NM) return 0;
+  if ((rq->bRequest < 0x80 && i >= NM) || (rq->bRequest > 0x7f && i>=NS) ) return 0;
   switch (rq->bRequest){
     case 0: // step  (uint16_t) Value = empty[4] i_motor[3] dir[1]  nsteps[8]
       if (!nsteps[i]){
@@ -80,6 +82,12 @@ usbMsgLen_t usbFunctionSetup(uchar data[8]) { // handle usb requests
     case 6: // report number of completed steps
       usbMsgPtr = &nsteps_completed[i];
       return sizeof(*nsteps_completed);
+
+    case 0x80: // report i-th sensor value
+      if ( *spin[i] & (1 << sbit[i])) sns=1;
+      usbMsgPtr = &sns;
+      return sizeof(sns);
+      break;
   }
   return 0;
 }

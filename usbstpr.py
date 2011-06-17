@@ -89,16 +89,16 @@ stpr.pwr_up() # turn current ON
     self.mydevh.controlMsg(usb.TYPE_VENDOR | usb.RECIP_DEVICE | usb.ENDPOINT_IN, 2, 0, value = d)
 
   def stop(self, m=0):
-    # set delay in ms
     self.mydevh.controlMsg(usb.TYPE_VENDOR | usb.RECIP_DEVICE | usb.ENDPOINT_IN, 3, 0, value=(m<<9))
 
   def pwr_down(self, m=0):
-    # set delay in ms
     self.mydevh.controlMsg(usb.TYPE_VENDOR | usb.RECIP_DEVICE | usb.ENDPOINT_IN, 4, 0, value=(m<<9))
 
   def pwr_up(self):
-    # set delay in ms
     self.mydevh.controlMsg(usb.TYPE_VENDOR | usb.RECIP_DEVICE | usb.ENDPOINT_IN, 5, 0)
+
+  def getsens(self, i):
+    return self.mydevh.controlMsg(usb.TYPE_VENDOR | usb.RECIP_DEVICE | usb.ENDPOINT_IN, 0x80, 1, value=(i<<9))[0]
 
 if __name__ == "__main__":
   from optparse import OptionParser
@@ -108,6 +108,7 @@ if __name__ == "__main__":
   parser.add_option('-d', dest='dly', type='int', help='Set time per step to D ms.', metavar='D')
   parser.add_option('-p', dest='pwr', type='str', help='Power up/down a motor. Valid arguments are `on` or `off`.', metavar='on|off')
   parser.add_option('-t', dest='stop', action="store_true", help='Stop a motor immediately.')
+  parser.add_option('-q', dest='qsns', action="store_true", help='Query sensor value. Specify sensor index using `-m` option')
   parser.set_defaults(mot=0)
   (opts, args) = parser.parse_args()
 
@@ -115,6 +116,10 @@ if __name__ == "__main__":
   if opts.stop:
     stpr.stop()
     sys.exit(0)
+
+  if opts.qsns:
+    print "Sensor #%d: %d" % (opts.mot, stpr.getsens(opts.mot))
+    sys.exit()
 
   if opts.dly: stpr.set_del(opts.dly)
   if opts.step: stpr.step(opts.step, opts.mot)
