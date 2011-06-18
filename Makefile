@@ -1,4 +1,4 @@
-DEVICE  = atmega8
+DEVICE  = atmega32
 F_CPU   = 12000000	# in Hz
 
 CFLAGS  = -Iusbdrv -I. -DDEBUG_LEVEL=0

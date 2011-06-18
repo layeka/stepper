@@ -3,15 +3,18 @@
 #include <util/delay.h>
 #include "usbdrv.h"
 
-#define NM 2
-#define NS 4
+#define NM 4
+#define NS 8
 
 volatile uint8_t * mport[NM];
 volatile uint8_t * mddr[NM];
-volatile uint8_t * spin[NS];
-volatile uint8_t * sport[NS];
-volatile uint8_t sbit[NS];
 volatile uint8_t mbits[NM]; // = {0, 4};
+
+volatile uint8_t * spin[NS] = {&PINC,&PINC,&PINC,&PINC, &PINC,&PINC,&PINC,&PINC};
+volatile uint8_t * sport[NS] = {&PORTC,&PORTC,&PORTC,&PORTC, &PORTC,&PORTC,&PORTC,&PORTC};
+volatile uint8_t sbit[NS] = {0,1,2,3,4,5,6,7};
+
+uint8_t sns;
 
 // 256 - 12e3/64
 #define TIM_START_VAL 69
@@ -43,7 +46,6 @@ void set_mport(uint8_t i, uint8_t val){
 usbMsgLen_t usbFunctionSetup(uchar data[8]) { // handle usb requests
   usbRequest_t *rq = (void *)data;
   unsigned int i;
-  uint8_t sns=0;
 
   i = (rq->wValue.bytes[1] & 0xe)>>1;
   if ((rq->bRequest < 0x80 && i >= NM) || (rq->bRequest > 0x7f && i>=NS) ) return 0;
@@ -84,7 +86,8 @@ usbMsgLen_t usbFunctionSetup(uchar data[8]) { // handle usb requests
       return sizeof(*nsteps_completed);
 
     case 0x80: // report i-th sensor value
-      if ( *spin[i] & (1 << sbit[i])) sns=1;
+      if ( (*spin[i]) & (1 << sbit[i])) sns=1;
+      else sns=0;
       usbMsgPtr = &sns;
       return sizeof(sns);
       break;
@@ -97,25 +100,21 @@ void main(void){
   del = 5; // ms
 
 // setup motor ports and sensors
-  mport[0] = &PORTC;
-  mddr[0] = &DDRC;
+  mport[0] = &PORTA;
+  mddr[0] = &DDRA;
   mbits[0] = 0;
-  spin[0] = &PINC;
-  sport[0] = &PORTC;
-  sbit[0] = 4;
-  spin[1] = &PINC;
-  sport[1] = &PORTC;
-  sbit[1] = 5;
 
-  mport[1] = &PORTB;
-  mddr[1] = &DDRB;
-  mbits[1] = 0;
-  spin[2] = &PINB;
-  sport[2] = &PORTB;
-  sbit[2] = 4;
-  spin[3] = &PINB;
-  sport[3] = &PORTB;
-  sbit[3] = 5;
+  mport[1] = &PORTA;
+  mddr[1] = &DDRA;
+  mbits[1] = 4;
+
+  mport[2] = &PORTB;
+  mddr[2] = &DDRB;
+  mbits[2] = 0;
+
+  mport[3] = &PORTB;
+  mddr[3] = &DDRB;
+  mbits[3] = 4;
 
 
 // setup usb
@@ -135,8 +134,8 @@ void main(void){
     pout[i] = 1;
     set_mport(i, pout[i]);
     t[i] = 0;
-    *sport[2*i] |= 1<<sbit[2*i];
-    *sport[2*i+1] |= 1<<sbit[2*i+1];
+//    *sport[2*i] |= 1<<sbit[2*i];
+//    *sport[2*i+1] |= 1<<sbit[2*i+1];
   }
 
   sei(); // enable interrupts
@@ -148,16 +147,16 @@ void main(void){
 
       if ( nsteps[i] && !t[i] ){
         if (dir & (1 << i)){
-          if (*spin[2*i] & (1<<sbit[2*i]))
+//          if (*spin[2*i] & (1<<sbit[2*i]))
             pout[i] = pout[i] << 1;
-          else
-            nsteps[i] = 1;
+//          else
+//            nsteps[i] = 1;
         }
         else {
-          if (*spin[2*i+1] & (1<<sbit[2*i+1]))
+//          if (*spin[2*i+1] & (1<<sbit[2*i+1]))
             pout[i] = pout[i] >> 1;
-          else
-            nsteps[i] = 1;
+//          else
+//            nsteps[i] = 1;
         }
         if (pout[i] == 0) pout[i] = 8;
         if (pout[i] > 8 ) pout[i] = 1;

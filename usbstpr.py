@@ -94,8 +94,8 @@ stpr.pwr_up() # turn current ON
   def pwr_down(self, m=0):
     self.mydevh.controlMsg(usb.TYPE_VENDOR | usb.RECIP_DEVICE | usb.ENDPOINT_IN, 4, 0, value=(m<<9))
 
-  def pwr_up(self):
-    self.mydevh.controlMsg(usb.TYPE_VENDOR | usb.RECIP_DEVICE | usb.ENDPOINT_IN, 5, 0)
+  def pwr_up(self, m=0):
+    self.mydevh.controlMsg(usb.TYPE_VENDOR | usb.RECIP_DEVICE | usb.ENDPOINT_IN, 5, 0, value=m<<9)
 
   def getsens(self, i):
     return self.mydevh.controlMsg(usb.TYPE_VENDOR | usb.RECIP_DEVICE | usb.ENDPOINT_IN, 0x80, 1, value=(i<<9))[0]
@@ -124,8 +124,8 @@ if __name__ == "__main__":
   if opts.dly: stpr.set_del(opts.dly)
   if opts.step: stpr.step(opts.step, opts.mot)
   if opts.pwr == "off":
-    stpr.pwr_down()
+    stpr.pwr_down(opts.mot)
   elif opts.pwr == "on":
-    stpr.pwr_up()
+    stpr.pwr_up(opts.mot)
 
   print "Done"
