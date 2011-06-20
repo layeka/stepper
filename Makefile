@@ -23,3 +23,10 @@ main.elf: $(OBJECTS)
 clean:
 	rm -f main.hex main.lst main.obj main.cof main.list main.map main.eep.hex main.elf *.o usbdrv/*.o main.s usbdrv/oddebug.s usbdrv/usbdrv.s
 
+load: main.hex
+	avrdude -P usb -c usbasp -p m32 -U flash:w:main.hex:i
+
+fuse:
+	avrdude -P usb -c usbasp -p m32 -U lfuse:w:lfuse.bin:r
+	avrdude -P usb -c usbasp -p m32 -U hfuse:w:hfuse.bin:r
+
