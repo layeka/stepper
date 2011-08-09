@@ -17,7 +17,7 @@ main.hex: main.elf
 	avr-size main.elf
 
 main.elf: $(OBJECTS)
-	$(CC) -o main.elf -Wl,-Map,main.map $(OBJECTS)
+	$(CC) $(CFLAGS) -o main.elf -Wl,-Map,main.map $(OBJECTS)
 
 #.c.o:
 #	$(COMPILE) -c $< -o $@
