@@ -6,6 +6,8 @@
 #define NM 4
 #define NS 8
 
+volatile uint8_t VERSION=1;
+
 volatile uint8_t * mport[NM];
 volatile uint8_t * mddr[NM];
 volatile uint8_t mbits[NM]; // = {0, 4};
@@ -13,6 +15,9 @@ volatile uint8_t mbits[NM]; // = {0, 4};
 volatile uint8_t * spin[NS] = {&PINC,&PINC,&PINC,&PINC, &PINC,&PINC,&PINC,&PINC};
 volatile uint8_t * sport[NS] = {&PORTC,&PORTC,&PORTC,&PORTC, &PORTC,&PORTC,&PORTC,&PORTC};
 volatile uint8_t sbit[NS] = {0,1,2,3,4,5,6,7};
+volatile uint8_t sok = 0xff;
+
+volatile uint8_t mot2sens[NM] = {0,0,0,0};
 
 uint8_t sns;
 
@@ -20,9 +25,8 @@ uint8_t sns;
 #define TIM_START_VAL 69
 
 volatile uint8_t del;
-volatile uint8_t dir;
-volatile uint8_t nsteps[NM];
-volatile uint8_t nsteps_completed[NM];
+volatile int16_t nsteps[NM];
+volatile uint16_t nsteps_completed[NM];
 volatile uint8_t pout[NM];
 volatile uint8_t t[NM]; // timers
 
@@ -47,16 +51,12 @@ usbMsgLen_t usbFunctionSetup(uchar data[8]) { // handle usb requests
   usbRequest_t *rq = (void *)data;
   unsigned int i;
 
-  i = (rq->wValue.bytes[1] & 0xe)>>1;
+  i = rq->wIndex.word & 0xf;
   if ((rq->bRequest < 0x80 && i >= NM) || (rq->bRequest > 0x7f && i>=NS) ) return 0;
   switch (rq->bRequest){
-    case 0: // step  (uint16_t) Value = empty[4] i_motor[3] dir[1]  nsteps[8]
+    case 0:
       if (!nsteps[i]){
-        if (rq->wValue.bytes[1] & 0x1)
-          dir |= 1<<i;
-        else
-          dir &= ~(1<<i);
-        nsteps[i] = rq->wValue.bytes[0];
+        nsteps[i] = rq->wValue.word;
         nsteps_completed[i] = 0;
       }
       break;
@@ -74,6 +74,7 @@ usbMsgLen_t usbFunctionSetup(uchar data[8]) { // handle usb requests
       break;
 
     case 4: // power down
+      nsteps[i]=0;
       set_mport(i, 0);
       break;
 
@@ -91,12 +92,25 @@ usbMsgLen_t usbFunctionSetup(uchar data[8]) { // handle usb requests
       usbMsgPtr = &sns;
       return sizeof(sns);
       break;
+
+    case 0x81: // rebind sensor to mot
+      mot2sens[i] = rq->wValue.bytes[0];
+
+    case 0x82: // reset sensor ok-value
+      if (*spin[mot2sens[i]] & (1<<sbit[mot2sens[i]]) ) sok |= 1<<mot2sens[i];
+      else sok &= ~(1<<mot2sens[i]);
+      break;
+
+    case 0xff: // return version
+      if (VERSION == rq->wValue.bytes[0]) VERSION=0;
+        usbMsgPtr = &VERSION;
+        return sizeof(VERSION);
   }
   return 0;
 }
 
 void main(void){
-  unsigned int i;
+  unsigned int i, is;
   del = 5; // ms
 
 // setup motor ports and sensors
@@ -137,16 +151,21 @@ void main(void){
 //    *sport[2*i] |= 1<<sbit[2*i];
 //    *sport[2*i+1] |= 1<<sbit[2*i+1];
   }
+  for (i=0; i<NS; i++) *sport[i]|=1<<sbit[i];
 
   sei(); // enable interrupts
 
   while(1){ // main loop
+    usbPoll(); // handle usb events
+    if (VERSION) continue;
     for (i=0; i<NM; i++){
 
-//      check terminal sensors here
+//      check terminal sensors
+      is=mot2sens[i];
+      if ( (((sok&(1<<is))>>is)<<sbit[is])^(*spin[is]&(1<<sbit[is])) ) nsteps[i]=0;
 
       if ( nsteps[i] && !t[i] ){
-        if (dir & (1 << i)){
+        if (nsteps[i]>0){
 //          if (*spin[2*i] & (1<<sbit[2*i]))
             pout[i] = pout[i] << 1;
 //          else
@@ -161,14 +180,13 @@ void main(void){
         if (pout[i] == 0) pout[i] = 8;
         if (pout[i] > 8 ) pout[i] = 1;
 
-        nsteps[i]--;
+        nsteps[i]>0 ? nsteps[i]-- : nsteps[i]++;
         nsteps_completed[i]++;
         set_mport(i, pout[i]);
         t[i] = del;
       }
     }
 
-    usbPoll(); // handle usb events
 
   }
 }
