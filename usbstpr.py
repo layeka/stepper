@@ -135,14 +135,15 @@ if __name__ == "__main__":
     sys.exit(0)
 
   if opts.qsns:
-    print "Sensor #%d: %d" % (opts.mot, stpr.getsens(opts.mot))
-    sys.exit()
+    sval = stpr.getsens(opts.mot)
+    print "Sensor #%d: %d" % (opts.mot, sval)
+    sys.exit(-sval)
 
   if opts.dly: stpr.set_del(opts.dly)
 
   if opts.step: 
     n=stpr.step(opts.step, opts.mot)
-    sys.exit(n)
+    sys.exit(-n)
 
   if opts.pwr == "off":
     stpr.pwr_down(opts.mot)
