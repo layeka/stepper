@@ -132,25 +132,18 @@ if __name__ == "__main__":
   stpr = usbstpr()
   if opts.stop:
     stpr.stop()
-    sys.exit(0)
-
-  if opts.qsns:
+  elif opts.qsns:
     sval = stpr.getsens(opts.mot)
     print "Sensor #%d: %d" % (opts.mot, sval)
-    sys.exit(-sval)
-
-  if opts.dly: stpr.set_del(opts.dly)
-
-  if opts.step: 
+  elif opts.dly:
+    stpr.set_del(opts.dly)
+  elif opts.step:
     n=stpr.step(opts.step, opts.mot)
-    sys.exit(-n)
-
-  if opts.pwr == "off":
+  elif opts.pwr == "off":
     stpr.pwr_down(opts.mot)
   elif opts.pwr == "on":
     stpr.pwr_up(opts.mot)
-
-  if opts.bind:
+  elif opts.bind:
     isns,imot=opts.bind.split('@')
     stpr.bind_sens(int(imot), int(isns))
     print "Sensor #%s assigned to motor #%s"%(isns, imot)
