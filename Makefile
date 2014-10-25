@@ -32,6 +32,5 @@ load: main.hex
 	avrdude -P usb -c usbasp -p m32 -U flash:w:main.hex:i
 
 fuse:
-	avrdude -P usb -c usbasp -p m32 -U lfuse:w:lfuse.bin:r
-	avrdude -P usb -c usbasp -p m32 -U hfuse:w:hfuse.bin:r
+	avrdude -P usb -c usbasp -p m32 -U lfuse:w:0xfc:m -U hfuse:w:0xd9:m
 
