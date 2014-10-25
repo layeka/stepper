@@ -62,7 +62,7 @@ usbMsgLen_t usbFunctionSetup(uchar data[8]) { // handle usb requests
       break;
 
     case 1: // report number of steps left to step
-      usbMsgPtr = &nsteps[i];
+      usbMsgPtr = (uchar *)&nsteps[i];
       return sizeof(*nsteps);
 
     case 2: // set delay
@@ -83,7 +83,7 @@ usbMsgLen_t usbFunctionSetup(uchar data[8]) { // handle usb requests
       break;
 
     case 6: // report number of completed steps
-      usbMsgPtr = &nsteps_completed[i];
+      usbMsgPtr = (uchar *)&nsteps_completed[i];
       return sizeof(*nsteps_completed);
 
     case 0x80: // report i-th sensor value
@@ -103,13 +103,13 @@ usbMsgLen_t usbFunctionSetup(uchar data[8]) { // handle usb requests
 
     case 0xff: // return version
       if (VERSION == rq->wValue.bytes[0]) VERSION=0;
-        usbMsgPtr = &VERSION;
+        usbMsgPtr = (uchar *)&VERSION;
         return sizeof(VERSION);
   }
   return 0;
 }
 
-void main(void){
+int main(void){
   unsigned int i, is;
   del = 5; // ms
 
