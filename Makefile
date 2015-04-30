@@ -7,7 +7,7 @@ ASFLAGS = $(CFLAGS)
 CC = avr-gcc
 CFLAGS  = -std=c99 -g -Wall -Os -DF_CPU=$(F_CPU) -mmcu=$(DEVICE) -Iusbdrv -I. -DDEBUG_LEVEL=0
 
-OBJECTS = usbdrv/usbdrv.o usbdrv/usbdrvasm.o usbdrv/oddebug.o main.o
+OBJECTS = main.o usbdrv/usbdrv.o usbdrv/usbdrvasm.o usbdrv/oddebug.o timer.o
 
 
 
