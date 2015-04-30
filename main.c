@@ -2,6 +2,7 @@
 #include <avr/interrupt.h>
 #include <util/delay.h>
 #include "usbdrv.h"
+#include "timer.h"
 
 #define NM 4
 #define NS 8
@@ -33,6 +34,8 @@ volatile int16_t nsteps[NM];
 volatile uint16_t nsteps_completed[NM];
 volatile uint8_t pout[NM];
 volatile uint8_t t[NM]; /* timers */
+
+volatile uint32_t timval, timval_copy;
 
 
 ISR(TIMER0_OVF_vect)
@@ -115,6 +118,11 @@ usbMsgLen_t usbFunctionSetup(uchar data[8])
 			sok &= ~(1 << mot2sens[i]);
 		break;
 
+	case 0xc0: /* report timer value */
+		timval_copy = timval;
+		usbMsgPtr = (uchar *)&timval_copy;
+		return sizeof(timval_copy);
+
 	case 0xff: /* return version */
 		if (VERSION == rq->wValue.bytes[0])
 			VERSION = 0;
@@ -127,6 +135,7 @@ usbMsgLen_t usbFunctionSetup(uchar data[8])
 int main(void)
 {
 	unsigned int i, is;
+	TIMER_TYPE tmr = -1;
 
 	del = 5; /* ms */
 
@@ -147,6 +156,12 @@ int main(void)
 	mddr[3] = &DDRB;
 	mbits[3] = 4;
 
+	timer_init();
+	sei();
+	tmr = timer_start();
+	_delay_ms(10);
+	timval = timer_stop(tmr);
+	cli();
 
 	/* setup usb */
 	usbInit();
@@ -159,6 +174,7 @@ int main(void)
 	TIMSK |= (1 << TOIE0); /* enable int on timer overflow */
 	TCNT0 = TIM_START_VAL;
 	TCCR0 |= (1 << CS01) | (1 << CS00); /* prescaler 1/64 */
+
 
 	/* Motor control port setup */
 	for (i = 0; i < NM; i++) {

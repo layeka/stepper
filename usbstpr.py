@@ -116,6 +116,10 @@ stpr.pwr_up() # turn current ON
   def bind_sens(self, m, s):
     self.mydevh.controlMsg(usb.TYPE_VENDOR | usb.RECIP_DEVICE | usb.ENDPOINT_IN, 0x81, 0, index=m, value=s)
 
+  def timget(self):
+    r = self.mydevh.controlMsg(usb.TYPE_VENDOR | usb.RECIP_DEVICE | usb.ENDPOINT_IN, 0xc0, 4)
+    return r[0] + (r[1] << 8) + (r[2] << 16) + (r[3] << 24)
+
 if __name__ == "__main__":
   from optparse import OptionParser
   parser = OptionParser()
